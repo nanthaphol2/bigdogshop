@@ -2,14 +2,18 @@ package servers
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/nanthaphol2/bigdogshop/modules/middelwares/middlewaresHandlers"
-	"github.com/nanthaphol2/bigdogshop/modules/middelwares/middlewaresRepositories"
-	"github.com/nanthaphol2/bigdogshop/modules/middelwares/middlewaresUsecases"
+	"github.com/nanthaphol2/bigdogshop/modules/middlewares/middlewaresHandlers"
+	"github.com/nanthaphol2/bigdogshop/modules/middlewares/middlewaresRepositories"
+	"github.com/nanthaphol2/bigdogshop/modules/middlewares/middlewaresUsecases"
 	"github.com/nanthaphol2/bigdogshop/modules/monitor/monitorHandlers"
+	"github.com/nanthaphol2/bigdogshop/modules/users/usersHandlers"
+	"github.com/nanthaphol2/bigdogshop/modules/users/usersRepositories"
+	"github.com/nanthaphol2/bigdogshop/modules/users/usersUsecases"
 )
 
 type IModuleFactory interface {
 	MonitorModule()
+	UsersModule()
 }
 
 type moduleFactory struct {
@@ -36,4 +40,21 @@ func (m *moduleFactory) MonitorModule() {
 	handler := monitorHandlers.MonitorHandler(m.s.cfg)
 
 	m.r.Get("/", handler.HealthCheck)
+}
+
+func (m *moduleFactory) UsersModule() {
+	repository := usersRepositories.UsersRepository(m.s.db)
+	usecase := usersUsecases.UsersUsecase(m.s.cfg, repository)
+	handler := usersHandlers.UsersHandler(m.s.cfg, usecase)
+	router := m.r.Group("/users")
+
+	router.Post("/signup", handler.SignUpCustomer)
+	router.Post("/signin", handler.SignIn)
+	router.Post("/refresh", handler.RefreshPassport)
+	router.Post("/signout", handler.SignOut)
+	router.Post("/signup-admin", handler.SignUpAdmin)
+
+	router.Get("/:user_id", m.mid.JwtAuth(), m.mid.ParamsCheck(), handler.GetUserProfile)
+	router.Get("/admin/secret", m.mid.JwtAuth(), m.mid.Authorize(2), handler.GenerateAdminToken)
+
 }
