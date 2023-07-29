@@ -47,6 +47,7 @@ func (s *server) Start() {
 
 	modules.MonitorModule()
 	modules.UsersModule()
+	modules.AppinfoModule()
 	s.app.Use(middlewares.RouterCheck())
 
 	c := make(chan os.Signal, 1)
