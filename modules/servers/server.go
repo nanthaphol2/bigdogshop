@@ -48,6 +48,8 @@ func (s *server) Start() {
 	modules.MonitorModule()
 	modules.UsersModule()
 	modules.AppinfoModule()
+	modules.FilesModule()
+	modules.ProductsModule()
 	s.app.Use(middlewares.RouterCheck())
 
 	c := make(chan os.Signal, 1)

@@ -5,10 +5,15 @@ import (
 	"github.com/nanthaphol2/bigdogshop/modules/appinfo/appinfoHandlers"
 	"github.com/nanthaphol2/bigdogshop/modules/appinfo/appinfoRepositories"
 	"github.com/nanthaphol2/bigdogshop/modules/appinfo/appinfoUsecases"
+	"github.com/nanthaphol2/bigdogshop/modules/files/filesHandlers"
+	"github.com/nanthaphol2/bigdogshop/modules/files/filesUsecases"
 	"github.com/nanthaphol2/bigdogshop/modules/middlewares/middlewaresHandlers"
 	"github.com/nanthaphol2/bigdogshop/modules/middlewares/middlewaresRepositories"
 	"github.com/nanthaphol2/bigdogshop/modules/middlewares/middlewaresUsecases"
 	"github.com/nanthaphol2/bigdogshop/modules/monitor/monitorHandlers"
+	"github.com/nanthaphol2/bigdogshop/modules/products/productsHandlers"
+	"github.com/nanthaphol2/bigdogshop/modules/products/productsRepositories"
+	"github.com/nanthaphol2/bigdogshop/modules/products/productsUsecases"
 	"github.com/nanthaphol2/bigdogshop/modules/users/usersHandlers"
 	"github.com/nanthaphol2/bigdogshop/modules/users/usersRepositories"
 	"github.com/nanthaphol2/bigdogshop/modules/users/usersUsecases"
@@ -18,6 +23,8 @@ type IModuleFactory interface {
 	MonitorModule()
 	UsersModule()
 	AppinfoModule()
+	FilesModule()
+	ProductsModule()
 }
 
 type moduleFactory struct {
@@ -73,4 +80,28 @@ func (m *moduleFactory) AppinfoModule() {
 	router.Get("/categories", m.mid.ApiKeyAuth(), handler.FindCategory)
 	router.Get("/apikey", m.mid.JwtAuth(), m.mid.Authorize(2), handler.GenerateApiKey)
 	router.Delete("/:category_id/categories", m.mid.JwtAuth(), m.mid.Authorize(2), handler.RemoveCategory)
+}
+
+func (m *moduleFactory) FilesModule() {
+
+	usecase := filesUsecases.FilesUsecase(m.s.cfg)
+	handler := filesHandlers.FilesHandler(m.s.cfg, usecase)
+	router := m.r.Group("/files")
+
+	router.Post("/upload", m.mid.JwtAuth(), m.mid.Authorize(2), handler.UploadFiles)
+	router.Patch("/delete", m.mid.JwtAuth(), m.mid.Authorize(2), handler.DeleteFile)
+
+}
+
+func (m *moduleFactory) ProductsModule() {
+
+	filesUsecase := filesUsecases.FilesUsecase(m.s.cfg)
+
+	productsRepository := productsRepositories.ProductsRepository(m.s.db, m.s.cfg, filesUsecase)
+	productsUsecase := productsUsecases.ProductsUsecase(productsRepository)
+	productsHandler := productsHandlers.ProductsHandler(m.s.cfg, productsUsecase, filesUsecase)
+
+	router := m.r.Group("/products")
+	_ = productsHandler
+	_ = router
 }
